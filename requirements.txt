@@ -1,0 +1,7 @@
+EbookLib
+BeautifulSoup4
+pymupdf4llm
+kokoro-onnx
+soundfile
+numpy
+yt-dlp
