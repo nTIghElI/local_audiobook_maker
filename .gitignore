@@ -1,0 +1,10 @@
+*.epub
+*.pdf
+*.wav
+*.mp3
+audio_output/
+inputs/
+staging/
+*.onnx
+*.bin
+__pycache__/
