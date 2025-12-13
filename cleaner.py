@@ -1,60 +1,61 @@
 import re
 
 def clean_text_for_audio(text):
-    """
-    Master cleaning function.
-    """
-    # 1. EXPAND ABBREVIATIONS
-    text = re.sub(r'\bU\.S\.', 'United States', text)
-    text = re.sub(r'\bU\.S\b', 'United States', text)
-    text = re.sub(r'\bUS\b', 'United States', text)
-
-    # 2. FIX "World War I / II"
-    text = re.sub(r'\bWorld War I\b', 'World War One', text, flags=re.IGNORECASE)
-    text = re.sub(r'\bWorld War II\b', 'World War Two', text, flags=re.IGNORECASE)
+    # 1. Standard cleanup (whitespace, weird artifacts)
+    text = text.strip()
+    text = re.sub(r'\s+', ' ', text)  # Collapse multiple spaces
     
-    # 3. FIX CITATION NUMBERS
-    text = re.sub(r'(?<=[a-zA-Z”"’])(\d+)(?!\d)', '', text)
-
-    # 4. PRONUNCIATION & EMPHASIS
-    corrections = {
-        "The Pentagon": "The Pen-tuh-gon",
-        "Pentagon": "Pen-tuh-gon",
-        "Nvidia": "En-vid-ea",
-        " TSMC ": " T-S-M-C ", 
-        "ASML": "A-S-M-L",
-        "Fuzhou": "Foo-joe",
-        "Xiamen": "Sha-men",
-        "Huawei": "Hwa-way",
-        "Shenzhen": "Shen-zhen",
-        # Fix the "On deck" pause by adding a comma
-        "On deck ninety-six": "On deck, ninety-six", 
+    # 2. Define the Dictionary of Replacements
+    # Key = Original Word (Case sensitive usually, but flags handle that)
+    # Value = How it should be pronounced
+    replacements = {
+        # --- The User Request ---
+        "Huawei": "Wah-way",
+        
+        # --- Chinese Tech Giants ---
+        "Xiaomi": "Sh-ow-me",
+        "Tencent": "Ten-cent",
+        "ByteDance": "Bite-dance",
+        "Alibaba": "Ah-lee-bah-bah",
+        
+        # --- Geopolitics / Cities ---
+        "Beijing": "Bay-jing",
+        "Taipei": "Tie-pay",
+        "Shenzhen": "Shen-jen",
+        "Xinjiang": "Shin-jiang",
+        "Kyiv": "Keev", 
+        "Qatar": "Kuh-tar", 
+        
+        # --- Military / Gov ---
+        "Pentagon": "Pent-agon", 
+        "Kremlin": "Krem-lin",
+        
+        # --- Acronyms ---
+        # "United States" flows better than "U.S." (which causes pauses)
+        "US": "U-Es",      
+        "USA": "United States of America",
+        "U.S.": "U-Es",
+        
+        # For these, we want letter-by-letter. 
+        # If "A.I." sounds choppy, we can change it to "Ay Eye" later.
+        "TSMC": "Tee Ess Mee See",
+        "CCP": "See See Pee",
+        "PLA": "Pee El Ah",   
+        "NATO": "Nay-toe", 
+        "AI": "A Eye",      
+        "LLM": "Ell Ell Em"
     }
-    for word, replacement in corrections.items():
-        text = text.replace(word, replacement)
 
-    # 5. CURRENCY
-    def currency_replacer(match):
-        return f"{match.group(1)} {match.group(2) or ''} dollars"
-    text = re.sub(r'\$(\d+(?:\.\d+)?)\s*(billion|million|trillion|thousand)?', currency_replacer, text)
+    # 3. Apply Replacements using Regex for safety
+    for word, phonetic in replacements.items():
+        # \b matches word boundaries. flags=re.IGNORECASE makes it catch "huawei" and "Huawei"
+        pattern = r'\b' + re.escape(word) + r'\b'
+        text = re.sub(pattern, phonetic, text, flags=re.IGNORECASE)
 
-    # 6. HEADER PROTECTION (The "Intro" Rush Fix)
-    # If we see a line that looks like a header (all caps, short), force a break
-    lines = text.split('\n')
-    processed_lines = []
-    
-    for line in lines:
-        stripped = line.strip()
-        if not stripped: 
-            continue
-            
-        # If it's a Header (e.g. "INTRODUCTION"), add a period to force a stop
-        # and ensure it stands alone.
-        if stripped.isupper() and len(stripped) < 50:
-            stripped += "."
-            
-        processed_lines.append(stripped)
+    return text
 
-    # Rejoin with a SPECIAL DELIMITER that main.py will look for
-    # We use |PARAGRAPH| so we don't get confused by normal newlines
-    return "|PARAGRAPH|".join(processed_lines)
+# Test block
+if __name__ == "__main__":
+    test_sentence = "The US and the CCP are discussing AI regulations."
+    print(f"Original: {test_sentence}")
+    print(f"Cleaned:  {clean_text_for_audio(test_sentence)}")
